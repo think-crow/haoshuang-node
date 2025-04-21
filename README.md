@@ -14,25 +14,24 @@ Express 与 Vercel：Vercel 默认不支持长时间运行的服务器实例，�
 创建文件结构：  
 /project-root  
   /api  
-    /login.js  
-    /data  
-      /get.js  
-      /add.js  
-      /update.js  
-      /delete.js  
-  /data.json  
-  vercel.json  
-  package.json  
+    -login.js  
+    -/data  
+      --get.js  
+      --/add.js  
+      --/update.js  
+      --/delete.js  
+  -/data.json  
+  -vercel.json  
+  -package.json  
 
 1、登录测试：
   在 Postman 中选择 Body 标签页，选择 raw，并设置格式为 JSON。
 ```  {
   "username": "your-username",
   "password": "your-password"
-}```
+}
+```
 
 2、API文件 上传成功后，在生成的链接上面跟路径就能访问了，例如：/api/login    /api/data/add  
 3、本地运行可创建.env文件保存环境变量，用于测试。
-4、登录获取token之后，把token加在Authorization 选项卡中：Bearer Token 即可模拟访问其它路由。
-
-在 Token 字段中粘贴你从登录或其他方式获取的 JWT Token。
+4、登录获取token之后，把token加在Authorization 选项卡的Bearer Token 即可模拟访问其它路由。
