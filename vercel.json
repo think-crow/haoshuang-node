@@ -1,0 +1,17 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "api/**/*.js",
+        "use": "@vercel/node"
+      }
+    ],
+    "routes": [
+      { "src": "/api/login", "dest": "/api/login.js" },
+      { "src": "/api/data/get", "dest": "/api/data/get.js" },
+      { "src": "/api/data/add", "dest": "/api/data/add.js" },
+      { "src": "/api/data/update/:id", "dest": "/api/data/update.js" },
+      { "src": "/api/data/delete/:id", "dest": "/api/data/delete.js" }
+    ]
+  }
+  
