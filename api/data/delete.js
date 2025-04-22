@@ -1,90 +1,63 @@
 const jwt = require('jsonwebtoken');
-const fs = require('fs').promises;
+const fs = require('fs').promises;  // 使用 Promise API
 const path = require('path');
 
 const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key';
 const jsonDataDir = process.env.JSON_DATA_DIR || path.join(__dirname, '../../static');
 
-// 可允许操作的文件名（防止路径遍历）
-const allowedFiles = ['poetrys', 'notepapers'];
+const authenticateJWT = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(403).json({ message: 'No token provided' });
 
-const authenticateJWT = (req) => {
-  return new Promise((resolve, reject) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return reject({ status: 403, message: 'No token provided' });
-
-    jwt.verify(token, secretKey, (err, user) => {
-      if (err) return reject({ status: 403, message: 'Invalid token' });
-      resolve(user);
-    });
+  jwt.verify(token, secretKey, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Invalid token' });
+    req.user = user;
+    next();
   });
 };
 
 module.exports = async (req, res) => {
   if (req.method !== 'DELETE') {
-    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+    return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { _id, fileName } = req.query;
+  authenticateJWT(req, res, async () => {
+    const { _id, fileName } = req.query;
+    if (!_id || !fileName) {
+      return res.status(400).json({ message: '_id and fileName are required' });
+    }
 
-  // 参数校验
-  if (!_id || !fileName) {
-    return res.status(400).json({ success: false, message: '_id and fileName are required' });
-  }
-
-  if (!allowedFiles.includes(fileName)) {
-    return res.status(400).json({ success: false, message: 'Invalid fileName' });
-  }
-
-  try {
-    // 验证身份
-    await authenticateJWT(req);
+    // 校验 fileName 合法性
+    if (!/^[a-zA-Z0-9_-]+$/.test(fileName)) {
+      return res.status(400).json({ message: 'Invalid fileName' });
+    }
 
     const filePath = path.join(jsonDataDir, `${fileName}.json`);
 
-    // 读取文件
-    let raw;
     try {
-      raw = await fs.readFile(filePath, 'utf8');
+      const fileContent = await fs.readFile(filePath, 'utf8');
+      const data = JSON.parse(fileContent);
+
+      const index = data.findIndex(item => String(item._id) === String(_id));
+      if (index === -1) {
+        return res.status(404).json({ message: 'Data not found' });
+      }
+
+      const deletedItem = data.splice(index, 1);
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+
+      res.status(200).json({
+        message: 'Data deleted successfully',
+        deletedItem: deletedItem[0]
+      });
     } catch (err) {
       if (err.code === 'ENOENT') {
-        return res.status(404).json({ success: false, message: 'File not found' });
+        return res.status(404).json({ message: 'File not found' });
       }
-      throw err;
+      if (err instanceof SyntaxError) {
+        return res.status(400).json({ message: 'Invalid JSON file' });
+      }
+      res.status(500).json({ message: 'Server error' });
     }
-
-    // 解析数据
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      return res.status(400).json({ success: false, message: 'Invalid JSON structure' });
-    }
-
-    if (!Array.isArray(data)) {
-      return res.status(500).json({ success: false, message: 'Expected JSON array in file' });
-    }
-
-    // 查找并删除数据项
-    const index = data.findIndex(item => String(item._id) === String(_id));
-    if (index === -1) {
-      return res.status(404).json({ success: false, message: 'Item not found' });
-    }
-
-    const deletedItem = data.splice(index, 1)[0];
-
-    // 写回数据
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
-
-    return res.status(200).json({
-      success: true,
-      message: 'Item deleted successfully',
-      data: deletedItem
-    });
-  } catch (err) {
-    console.error('[DELETE ERROR]', err);
-    const status = err.status || 500;
-    const message = err.message || 'Internal server error';
-    return res.status(status).json({ success: false, message });
-  }
+  });
 };

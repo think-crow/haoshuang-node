@@ -1,83 +1,71 @@
 const jwt = require('jsonwebtoken');
-const fs = require('fs/promises');
+const fs = require('fs');
 const path = require('path');
 
-// 允许的 JSON 文件名（白名单控制）
-const allowedFiles = ['poetrys', 'notepapers'];
+// 从环境变量中获取 secret key 和 JSON 数据文件存放目录
+const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key';  // 如果没有设置，使用默认的密钥
+const dataDir = process.env.JSON_DATA_DIR || path.join(__dirname, '../../static');  // 如果没有设置，使用默认的文件目录
 
-const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key';
-const dataDir = process.env.JSON_DATA_DIR || path.join(__dirname, '../../static');
+// JWT 认证中间件
+const authenticateJWT = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];  // 获取 Authorization header 中的 Token
 
-// JWT 验证函数（返回 Promise）
-const verifyJWT = (req) => {
-  return new Promise((resolve, reject) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return reject({ status: 403, message: 'Access denied, no token provided' });
+  if (!token) {
+    return res.status(403).json({ message: 'Access denied, no token provided' });
+  }
 
-    jwt.verify(token, secretKey, (err, user) => {
-      if (err) return reject({ status: 403, message: 'Token is not valid' });
-      resolve(user);
-    });
+  jwt.verify(token, secretKey, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Token is not valid' });
+    }
+    req.user = user;  // 将用户信息附加到请求中
+    next();
   });
 };
 
-// 示例数据校验（这里只是简单判断是否为对象，可接入 zod/joi）
-const validateData = (data) => {
-  return typeof data === 'object' && !Array.isArray(data);
-};
-
 module.exports = async (req, res) => {
+  // 只允许 POST 请求
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+    return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
+  // 从查询参数中获取 fileName（例如 'poetry' 或 'notepapers'）
   const { fileName } = req.query;
   const newData = req.body;
 
-  if (!fileName || !allowedFiles.includes(fileName)) {
-    return res.status(400).json({ success: false, message: 'Invalid or missing fileName' });
+  // 如果没有提供 fileName 或 newData，返回 400 错误
+  if (!fileName) {
+    return res.status(400).json({ message: 'FileName is required' });
+  }
+  if (!newData) {
+    return res.status(400).json({ message: 'New data is required' });
   }
 
-  if (!validateData(newData)) {
-    return res.status(400).json({ success: false, message: 'Invalid data format' });
-  }
+  // 拼接出 JSON 文件路径
+  const jsonFilePath = path.join(dataDir, `${fileName}.json`);
 
-  try {
-    const user = await verifyJWT(req);
-    req.user = user; // 可选：用于记录是谁写入数据的
-
-    const jsonFilePath = path.join(dataDir, `${fileName}.json`);
-
-    // 检查文件是否存在
+  // JWT 验证
+  await authenticateJWT(req, res, async () => {
     try {
-      await fs.access(jsonFilePath);
-    } catch {
-      return res.status(404).json({ success: false, message: `File ${fileName}.json not found` });
+      // 检查文件是否存在
+      if (!fs.existsSync(jsonFilePath)) {
+        return res.status(404).json({ message: `File ${fileName}.json not found` });
+      }
+
+      // 读取文件并解析 JSON 数据
+      let data = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
+
+      // 增加新的数据
+      data.push(newData);
+
+      // 将修改后的数据写回 JSON 文件
+      fs.writeFileSync(jsonFilePath, JSON.stringify(data, null, 2));
+      
+      // 返回新增的数据
+      res.status(201).json(newData);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Failed to process request' });
     }
-
-    // 读取现有数据
-    const raw = await fs.readFile(jsonFilePath, 'utf8');
-    const data = JSON.parse(raw);
-
-    if (!Array.isArray(data)) {
-      return res.status(500).json({ success: false, message: 'Invalid JSON structure in file' });
-    }
-
-    // 添加数据
-    data.push(newData);
-
-    // 写入文件（覆盖）
-    await fs.writeFile(jsonFilePath, JSON.stringify(data, null, 2), 'utf8');
-
-    return res.status(201).json({
-      success: true,
-      data: newData,
-      message: 'Data appended successfully',
-    });
-  } catch (err) {
-    console.error('[ERROR]', err);
-    const status = err.status || 500;
-    const message = err.message || 'Internal server error';
-    return res.status(status).json({ success: false, message });
-  }
+  });
 };
