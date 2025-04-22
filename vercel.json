@@ -14,8 +14,10 @@
       { "src": "/api/login", "dest": "/api/login.js" },
       { "src": "/api/data/get", "dest": "/api/data/get.js" },
       { "src": "/api/data/add", "dest": "/api/data/add.js" },
-      { "src": "/api/data/update/:id", "dest": "/api/data/update.js" },
-      { "src": "/api/data/delete/:id", "dest": "/api/data/delete.js" }
+      { "src": "/api/data/update", "dest": "/api/data/update.js" },
+      { "src": "/api/data/delete", "dest": "/api/data/delete.js" },
+      { "src": "/", "dest": "/dist/index.html" },
+      { "src": "/assets/(.*)", "dest": "/dist/assets/$1" }
     ]
   }
   

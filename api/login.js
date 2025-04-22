@@ -31,7 +31,7 @@ module.exports = (req, res) => {
     }
 
     // 生成 JWT Token
-    const token = jwt.sign({ username: inputUsername }, secretKey, { expiresIn: '1h' });
+    const token = jwt.sign({ username: inputUsername }, secretKey, { expiresIn: '5h' });
     res.json({ token });
   });
 };

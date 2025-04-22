@@ -1,60 +1,63 @@
 const jwt = require('jsonwebtoken');
-const fs = require('fs');
+const fs = require('fs').promises;  // 使用 Promise API
 const path = require('path');
 
-// 从环境变量中获取密钥和数据文件路径
-const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key';  // 如果没有设置环境变量则使用默认值
-const jsonDataPath = process.env.JSON_DATA_PATH || path.join(__dirname, '../../data.json');  // 获取环境变量中的 JSON 数据文件路径
+const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key';
+const jsonDataDir = process.env.JSON_DATA_DIR || path.join(__dirname, '../../static');
 
-// JWT 认证中间件
 const authenticateJWT = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];  // 获取 Authorization header 中的 Token
-
-  if (!token) {
-    return res.status(403).json({ message: 'Access denied, no token provided' });
-  }
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(403).json({ message: 'No token provided' });
 
   jwt.verify(token, secretKey, (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: 'Token is not valid' });
-    }
-    req.user = user;  // 将用户信息附加到请求中
+    if (err) return res.status(403).json({ message: 'Invalid token' });
+    req.user = user;
     next();
   });
 };
 
 module.exports = async (req, res) => {
-  // 只允许 DELETE 请求
   if (req.method !== 'DELETE') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  // JWT 验证
-  await authenticateJWT(req, res, async () => {
-    const { id } = req.params;  // 获取 URL 中的 id 参数
+  authenticateJWT(req, res, async () => {
+    const { _id, fileName } = req.query;
+    if (!_id || !fileName) {
+      return res.status(400).json({ message: '_id and fileName are required' });
+    }
+
+    // 校验 fileName 合法性
+    if (!/^[a-zA-Z0-9_-]+$/.test(fileName)) {
+      return res.status(400).json({ message: 'Invalid fileName' });
+    }
+
+    const filePath = path.join(jsonDataDir, `${fileName}.json`);
 
     try {
-      // 读取文件并解析 JSON 数据
-      const data = JSON.parse(fs.readFileSync(jsonDataPath, 'utf8'));
+      const fileContent = await fs.readFile(filePath, 'utf8');
+      const data = JSON.parse(fileContent);
 
-      // 查找需要删除的项
-      const index = data.findIndex(item => item.id === id);
-
+      const index = data.findIndex(item => String(item._id) === String(_id));
       if (index === -1) {
         return res.status(404).json({ message: 'Data not found' });
       }
 
-      // 删除对应的项
-      data.splice(index, 1);
+      const deletedItem = data.splice(index, 1);
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2));
 
-      // 将修改后的数据写回 JSON 文件
-      fs.writeFileSync(jsonDataPath, JSON.stringify(data, null, 2));
-
-      // 返回成功的响应
-      res.status(204).end();  // 204 No Content 表示删除成功但没有返回内容
+      res.status(200).json({
+        message: 'Data deleted successfully',
+        deletedItem: deletedItem[0]
+      });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: 'Failed to delete data' });
+      if (err.code === 'ENOENT') {
+        return res.status(404).json({ message: 'File not found' });
+      }
+      if (err instanceof SyntaxError) {
+        return res.status(400).json({ message: 'Invalid JSON file' });
+      }
+      res.status(500).json({ message: 'Server error' });
     }
   });
 };
