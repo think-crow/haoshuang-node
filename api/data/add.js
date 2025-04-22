@@ -1,90 +1,96 @@
-const { Octokit } = require('@octokit/rest');
-const fs = require('fs');
-const path = require('path');
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();  // 用于读取环境变量
 
-// 从环境变量中获取 GitHub token
-const githubToken = process.env.GITHUB_TOKEN;  // GitHub Token 用于认证
-const owner = process.env.GITHUB_OWNER || 'think-crow'; // GitHub 仓库的拥有者
-const repo = process.env.GITHUB_REPO || 'haoshuang-node'; // GitHub 仓库名称
-const branch = process.env.GITHUB_BRANCH || 'master';  // 默认分支更新为 'master'
+// GitHub API 配置
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const REPO_OWNER = 'think-crow';  // 替换为你的 GitHub 用户名
+const REPO_NAME = 'haoshuang-node';  // 替换为你的仓库名
+const BASE_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
 
-// 初始化 GitHub 客户端
-const octokit = new Octokit({
-  auth: githubToken,
-});
-
-// JWT 认证中间件
+// 用于验证 JWT 的中间件
 const authenticateJWT = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];  // 获取 Authorization header 中的 Token
-
+  const token = req.headers['authorization']?.split(' ')[1]; // 从请求头部获取 token
   if (!token) {
-    return res.status(403).json({ message: 'Access denied, no token provided' });
+    return res.status(403).json({ message: 'No token provided' }); // 如果没有 token，返回 403
   }
 
-  jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
+  const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key'; // 获取 secretKey
+  jwt.verify(token, secretKey, (err, user) => { // 验证 token
     if (err) {
-      return res.status(403).json({ message: 'Token is not valid' });
+      return res.status(403).json({ message: 'Invalid token' }); // token 无效
     }
-    req.user = user;  // 将用户信息附加到请求中
-    next();
+    req.user = user; // 将验证通过的用户信息保存到请求对象中
+    next(); // 验证通过后继续处理请求
   });
 };
 
+// 获取文件内容
+async function getFileContent(filePath, branch = 'master') {
+  try {
+    const response = await axios.get(`${BASE_URL}/contents/${filePath}`, {
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+      },
+      params: {
+        ref: branch,  // 指定分支
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching file:', error);
+    throw error;
+  }
+}
+
+// 更新文件内容
+async function updateFileContent(filePath, message, content, sha, branch = 'master') {
+  try {
+    const response = await axios.put(`${BASE_URL}/contents/${filePath}`, {
+      message,
+      content: Buffer.from(JSON.stringify(content)).toString('base64'),
+      sha,  // 使用最新的 SHA 值
+      branch,  // 确保更新到指定的分支
+    }, {
+      headers: {
+        'Authorization': `token ${GITHUB_TOKEN}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating file:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 module.exports = async (req, res) => {
-  // 只允许 POST 请求
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
+  authenticateJWT(req, res, async () => {
+    const { filename } = req.query;
+    const newData = req.body;
 
-  // 从查询参数中获取 fileName（例如 'poetry' 或 'notepapers'）
-  const { fileName } = req.query;
-  const newData = req.body;
+    if (!GITHUB_TOKEN) {
+      return res.status(500).json({ error: 'GitHub token not found in environment variables.' });
+    }
 
-  // 如果没有提供 fileName 或 newData，返回 400 错误
-  if (!fileName) {
-    return res.status(400).json({ message: 'FileName is required' });
-  }
-  if (!newData) {
-    return res.status(400).json({ message: 'New data is required' });
-  }
+    if (!filename || !newData) {
+      return res.status(400).json({ error: 'Filename and new data must be provided.' });
+    }
 
-  // 拼接出 JSON 文件路径, 假设文件在 static 文件夹内
-  const filePath = `static/${fileName}.json`;  // 更新文件路径
-
-  // JWT 验证
-  await authenticateJWT(req, res, async () => {
     try {
-      // 获取文件的当前内容
-      const { data: fileData } = await octokit.repos.getContent({
-        owner,
-        repo,
-        path: filePath,
-        ref: branch, // 使用 'master' 分支
-      });
+      // 获取 master 分支的最新文件内容和 SHA 值
+      const fileResponse = await getFileContent(`static/${filename}`, 'master');
+      const fileContent = JSON.parse(Buffer.from(fileResponse.content, 'base64').toString('utf-8'));
 
-      // 获取文件的内容和 SHA 值
-      const fileContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
-      let data = JSON.parse(fileContent);
+      // 插入新数据
+      fileContent.push(newData);
 
-      // 增加新的数据
-      data.push(newData);
+      // 更新文件内容到 master 分支
+      const updateResponse = await updateFileContent(`static/${filename}`, 'Update JSON file with new data', fileContent, fileResponse.sha, 'master');
 
-      // 提交更改到 GitHub
-      await octokit.repos.createOrUpdateFileContents({
-        owner,
-        repo,
-        path: filePath,
-        message: `Add new data to ${fileName}.json on master branch`,  // 提交信息更新
-        content: Buffer.from(JSON.stringify(data, null, 2)).toString('base64'),
-        sha: fileData.sha, // 使用原文件的 sha 值
-        branch, // 提交到 master 分支
-      });
-
-      // 返回新增的数据
-      res.status(201).json(newData);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: 'Failed to process request' });
+      return res.status(200).json(updateResponse);
+    } catch (error) {
+      console.error('Error during file update process:', error);
+      return res.status(500).json({ error: 'An error occurred while updating the file.', details: error.message });
     }
   });
 };
