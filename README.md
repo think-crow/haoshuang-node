@@ -25,7 +25,8 @@ Express 与 Vercel：Vercel 默认不支持长时间运行的服务器实例，�
 
 1、登录测试：
   在 Postman 中选择 Body 标签页，选择 raw，并设置格式为 JSON。
-```  {
+```
+{
   "username": "your-username",
   "password": "your-password"
 }
@@ -36,3 +37,14 @@ Express 与 Vercel：Vercel 默认不支持长时间运行的服务器实例，�
 4、登录获取token之后，把token加在Authorization 选项卡的Bearer Token 即可模拟访问其它路由。
 
 5、vercel本地运行测试命令：vercel dev
+
+6、果然程序的问题，不能增加各种回调，可能会出问题（最不安全的最稳定）回滚到早上备份。
+```
+1\问题可能出在 authenticateJWT 是同步写法里用 await 调用一个 callback 函数，但它本身不是 Promise。这会导致 Vercel 的函数行为不稳定或无法完成响应。
+2\如果你使用了异步函数（如 bcrypt.compare() 的回调），你必须确保 response 一定在所有异步逻辑结束后调用；
+
+否则 Vercel 函数可能“先返回了”，导致请求无响应，或者调用不稳定。
+```
+
+7、有点灰心，弄了一天，发现不能修改文件，Gpt给的还是太模糊。
+晚上强迫着替换为使用GitHub-api进行更新

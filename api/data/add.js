@@ -1,10 +1,17 @@
-const jwt = require('jsonwebtoken');
+const { Octokit } = require('@octokit/rest');
 const fs = require('fs');
 const path = require('path');
 
-// 从环境变量中获取 secret key 和 JSON 数据文件存放目录
-const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key';  // 如果没有设置，使用默认的密钥
-const dataDir = process.env.JSON_DATA_DIR || path.join(__dirname, '../../static');  // 如果没有设置，使用默认的文件目录
+// 从环境变量中获取 GitHub token
+const githubToken = process.env.GITHUB_TOKEN;  // GitHub Token 用于认证
+const owner = process.env.GITHUB_OWNER || 'think-crow'; // GitHub 仓库的拥有者
+const repo = process.env.GITHUB_REPO || 'haoshuang-node'; // GitHub 仓库名称
+const branch = process.env.GITHUB_BRANCH || 'master';  // 默认分支更新为 'master'
+
+// 初始化 GitHub 客户端
+const octokit = new Octokit({
+  auth: githubToken,
+});
 
 // JWT 认证中间件
 const authenticateJWT = (req, res, next) => {
@@ -14,7 +21,7 @@ const authenticateJWT = (req, res, next) => {
     return res.status(403).json({ message: 'Access denied, no token provided' });
   }
 
-  jwt.verify(token, secretKey, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
     if (err) {
       return res.status(403).json({ message: 'Token is not valid' });
     }
@@ -41,26 +48,38 @@ module.exports = async (req, res) => {
     return res.status(400).json({ message: 'New data is required' });
   }
 
-  // 拼接出 JSON 文件路径
-  const jsonFilePath = path.join(dataDir, `${fileName}.json`);
+  // 拼接出 JSON 文件路径, 假设文件在 static 文件夹内
+  const filePath = `static/${fileName}.json`;  // 更新文件路径
 
   // JWT 验证
   await authenticateJWT(req, res, async () => {
     try {
-      // 检查文件是否存在
-      if (!fs.existsSync(jsonFilePath)) {
-        return res.status(404).json({ message: `File ${fileName}.json not found` });
-      }
+      // 获取文件的当前内容
+      const { data: fileData } = await octokit.repos.getContent({
+        owner,
+        repo,
+        path: filePath,
+        ref: branch, // 使用 'master' 分支
+      });
 
-      // 读取文件并解析 JSON 数据
-      let data = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
+      // 获取文件的内容和 SHA 值
+      const fileContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
+      let data = JSON.parse(fileContent);
 
       // 增加新的数据
       data.push(newData);
 
-      // 将修改后的数据写回 JSON 文件
-      fs.writeFileSync(jsonFilePath, JSON.stringify(data, null, 2));
-      
+      // 提交更改到 GitHub
+      await octokit.repos.createOrUpdateFileContents({
+        owner,
+        repo,
+        path: filePath,
+        message: `Add new data to ${fileName}.json on master branch`,  // 提交信息更新
+        content: Buffer.from(JSON.stringify(data, null, 2)).toString('base64'),
+        sha: fileData.sha, // 使用原文件的 sha 值
+        branch, // 提交到 master 分支
+      });
+
       // 返回新增的数据
       res.status(201).json(newData);
     } catch (err) {
