@@ -1,27 +1,17 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "dist/**/*",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-
-    { "src": "^/api/login$", "dest": "/api/login.js" },
-    { "src": "^/api/data/get$", "dest": "/api/data/get.js" },
-    { "src": "^/api/data/add$", "dest": "/api/data/add.js" },
-    { "src": "^/api/data/update$", "dest": "/api/data/update.js" },
-    { "src": "^/api/data/delete$", "dest": "/api/data/delete.js" },
-
+    "version": 2,
+    "builds": [
+      {
+        "src": "api/**/*.js",
+        "use": "@vercel/node"
+      }
+    ],
+    "routes": [
+      { "src": "/api/login", "dest": "/api/login.js" },
+      { "src": "/api/data/get", "dest": "/api/data/get.js" },
+      { "src": "/api/data/add", "dest": "/api/data/add.js" },
+      { "src": "/api/data/update", "dest": "/api/data/update.js" },
+      { "src": "/api/data/delete", "dest": "/api/data/delete.js" }
+    ]
+  }
   
-    { "src": "^/assets/(.*)", "dest": "/dist/assets/$1" },
-
-
-    { "src": "^(?!/api)(.*)", "dest": "/dist/index.html" }
-  ]
-}
