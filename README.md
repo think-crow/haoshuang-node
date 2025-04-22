@@ -36,3 +36,6 @@ Express 与 Vercel：Vercel 默认不支持长时间运行的服务器实例，�
 4、登录获取token之后，把token加在Authorization 选项卡的Bearer Token 即可模拟访问其它路由。
 
 5、vercel本地运行测试命令：vercel dev
+
+
+vercel我增加vue3的dist后，怎么避免，访问api时被dist识别为它的路径?
