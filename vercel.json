@@ -7,7 +7,7 @@
     },
     {
       "src": "dist/**/*",
-      "use": "@vercel/static-build"
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -16,7 +16,7 @@
     { "src": "/api/data/add", "dest": "/api/data/add.js" },
     { "src": "/api/data/update", "dest": "/api/data/update.js" },
     { "src": "/api/data/delete", "dest": "/api/data/delete.js" },
-    { "src": "/dist/assets/(.*)", "dest": "/dist/assets/$1" }, 
+    { "src": "/assets/(.*)", "dest": "/dist/assets/$1" }, 
     { "src": "/(.*)", "dest": "/dist/index.html" } 
   ]
 }
