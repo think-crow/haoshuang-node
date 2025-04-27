@@ -11,12 +11,8 @@
     }
   ],
   "routes": [
-
-    { "src": "/api/login", "dest": "/api/login.js" },
-    { "src": "/api/data/get", "dest": "/api/data/get.js" },
-    { "src": "/api/data/add", "dest": "/api/data/add.js" },
-    { "src": "/api/data/update", "dest": "/api/data/update.js" },
-    { "src": "/api/data/delete", "dest": "/api/data/delete.js" },
+    { "src": "/api/(.*)", "dest": "/api/$1.js" },
     { "src": "/(.*)", "dest": "/dist/index.html" }
-  ]
+  ],
+  "cleanUrls": true
 }
