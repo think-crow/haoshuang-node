@@ -8,6 +8,18 @@ const passwordHash = process.env.USER_PASSWORD_HASH; // 存储的是加密后的
 const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key'; // 使用环境变量中的密钥，如果没有则使用默认值
 
 module.exports = (req, res) => {
+
+    // ====== 新增：统一加 CORS 头 ======
+    res.setHeader('Access-Control-Allow-Origin', '*'); // 允许所有来源（开发阶段）
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+      // ====== 处理 OPTIONS 预检请求 ======
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+
   // 只允许 POST 请求
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
@@ -23,15 +35,22 @@ module.exports = (req, res) => {
   // 使用 bcrypt 验证密码是否匹配
   bcrypt.compare(inputPassword, passwordHash, (err, isMatch) => {
     if (err) {
-      return res.status(500).json({ message: '密码错误' });
+      return res.status(500).json({ code: 1001, message: '用户名或密码错误' });
     }
 
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ code:401, message: '错误' });
     }
 
     // 生成 JWT Token
     const token = jwt.sign({ username: inputUsername }, secretKey, { expiresIn: '5h' });
-    res.json({ token });
+    res.json({
+      code: 200,
+      message: '登录成功',
+      data: {
+        token,
+        username: inputUsername
+      }
+    });
   });
 };

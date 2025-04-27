@@ -68,7 +68,11 @@ module.exports = async (req, res) => {
       // 尝试解析 JSON 数据
       try {
         const jsonData = JSON.parse(fileContent);
-        res.json(jsonData);
+        res.status(200).json({
+          code: 200,
+          message: 'Success',
+          data: jsonData
+        });
       } catch (err) {
         // 如果文件不是 JSON 格式，返回原始文本内容
         res.send(fileContent);
