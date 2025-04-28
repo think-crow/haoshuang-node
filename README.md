@@ -1,6 +1,5 @@
-# 本仓库为[haoshuang](https://github.com/think-crow/haoshuang)后台代码，实现登录后对指定json、md文件进行增删改查。  
+# 本仓库代码为[haoshuang](https://github.com/think-crow/haoshuang)仓库设计。 实现登录后对指定json、md文件进行增删改查。  
   
-hugo网站可以实现登录修改吗？本仓库为一实现方案，本仓库代码主要针对haoshuang.org网站而自行设计。  
 （为什么不用服务器：能不花钱就不花钱。感觉vercel应该比自己的服务器存活时间长！）  
 
 设计思路：  
@@ -8,6 +7,10 @@ hugo网站可以实现登录修改吗？本仓库为一实现方案，本仓库�
 
 备注：直接修改网站的仓库，不太保险。暂时把代码部署在另一个仓库的main分支，修改其master分支内的容，待月底统一拉取更新。（构思Github action实现月底动推送，虽然很诱人，但git用的还不是太熟悉，暂时先不做）
 
+- api文件夹下为请求接口。
+- dist文件夹为vue3打包后的文件。
+- vercel.json为路由配置文件。
+- 本地可新建.env文件配置代码中的环境变量。
 
 
 <!-- 
