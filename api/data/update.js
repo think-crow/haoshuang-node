@@ -65,7 +65,7 @@ const updateFileContent = async (filename, sha, message, content, branch = 'mast
   try {
     const response = await axios.put(`${BASE_URL}/contents/static/${filename}`, {
       message,
-      content: Buffer.from(JSON.stringify(content)).toString('base64'),
+      content: Buffer.from(JSON.stringify(content, null, 2)).toString('base64'), // 格式化输出
       sha,  // 使用文件的最新 SHA 值
       branch  // 指定分支
     }, {
