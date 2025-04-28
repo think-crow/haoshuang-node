@@ -92,17 +92,15 @@ draft = ${draft}
 
 module.exports = async (req, res) => {
   authenticateJWT(req, res, async () => {
-    // console.log(req.query);
-    const { originalFileName } = req.query; // GET请求时带参数 ?originalFileName=xxx
-    const { title, slug, draft, content } = req.body; // PUT请求时带body
-    // console.log(req.body);
-
+    
     if (req.method === 'GET') {
+      const { originalFileName } = req.query; // GET请求时带参数 ?originalFileName=xxx
       if (!originalFileName) {
         return res.status(400).json({ code: 400, message: 'Missing originalFileName', data: null });
       }
 
       try {
+       
         const filePath = `content/posts/${originalFileName}`;
         const fileData = await getMarkdownFile(filePath);
 
@@ -121,6 +119,7 @@ module.exports = async (req, res) => {
       }
 
     } else if (req.method === 'PUT') {
+      const { title, slug, draft, content } = req.body; // PUT请求时带body
       const { originalFileName } = req.body;
 
       if (!title || !slug || typeof draft === 'undefined' || !content || !originalFileName) {

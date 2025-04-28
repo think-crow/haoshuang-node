@@ -1,17 +1,19 @@
-# 本仓库代码为[haoshuang](https://github.com/think-crow/haoshuang)仓库设计。 实现登录后对指定json、md文件进行增删改查。  
+# 本仓库代码为[此](https://github.com/think-crow/haoshuang)仓库而设计。 实现登录后对指定json、md文件进行增删改查。  
   
 （为什么不用服务器：能不花钱就不花钱。感觉vercel应该比自己的服务器存活时间长！）  
 
 设计思路：  
-> 针对vercel免费提供的serverless function。可使用node.js编写后台代码托管在vercel上、vue3编写前端页面，请求接口来修改已授权的GitHub仓库内文件。
+> 针对vercel免费提供的serverless function。可使用node.js编写后台代码托管在vercel上、vue3编写前端页面，请求Github-API来修改已授权的GitHub仓库内文件。
 
-备注：直接修改网站的仓库，不太保险。暂时把代码部署在另一个仓库的main分支，修改其master分支内的容，待月底统一拉取更新。（构思Github action实现月底动推送，虽然很诱人，但git用的还不是太熟悉，暂时先不做）
+备注：直接修改网站的仓库，不太保险。暂时把代码部署在另一个仓库的main分支，修改其master分支内的容，待月底统一拉取更新。（构思Github action实现月底自动推送，虽然很诱人，但git用的还不是太熟悉，暂时先不做）
 
 - api文件夹下为请求接口。
 - dist文件夹为vue3打包后的文件。
 - vercel.json为路由配置文件。
 - 本地可新建.env文件配置代码中的环境变量。
+- password-bcrypt.js文件为用bcrypt生成加密密钥。直接node 文件名.js运行单个js文件。
 
+尾言：生成的后台登录链接，在中国境内不能访问，必须要开加速器才行。GitHub-Api携带token可每小时访问5000次，直接访问每小时限制60次。
 
 <!-- 
 ---下面的不用看了--- -->
