@@ -9,7 +9,7 @@ const REPO_NAME = 'haoshuang-node';  // 替换为你的仓库名
 const BASE_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
 
 // 从环境变量获取密钥
-const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key';
+const secretKey = process.env.JWT_SECRET_KEY;
 
 // JWT 认证中间件
 const authenticateJWT = (req, res, next) => {

@@ -13,7 +13,7 @@ const authenticateJWT = (req, res, next) => {
     return res.status(401).json({ code: 401, message: 'Missing token', data: null });
   }
 
-  const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key';
+  const secretKey = process.env.JWT_SECRET_KEY;
   jwt.verify(token, secretKey, (err, user) => {
     if (err) {
       return res.status(401).json({ code: 401, message: 'Invalid token', data: null });

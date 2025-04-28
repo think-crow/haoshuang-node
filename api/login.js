@@ -5,19 +5,20 @@ const bcrypt = require('bcrypt');
 // 从环境变量获取用户信息
 const username = process.env.USER_USERNAME;
 const passwordHash = process.env.USER_PASSWORD_HASH; // 存储的是加密后的密码
-const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key'; // 使用环境变量中的密钥，如果没有则使用默认值
+const secretKey = process.env.JWT_SECRET_KEY; // 使用环境变量中的密钥，如果没有则使用默认值
 
 module.exports = (req, res) => {
 
     // ====== 新增：统一加 CORS 头 ======
-    res.setHeader('Access-Control-Allow-Origin', '*'); // 允许所有来源（开发阶段）
+    // res.setHeader('Access-Control-Allow-Origin', '*'); // 允许所有来源（开发阶段）
+    res.setHeader('Access-Control-Allow-Origin', 'https://haoshuang-node.vercel.app');//允许指定源访问
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
       // ====== 处理 OPTIONS 预检请求 ======
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  // if (req.method === 'OPTIONS') {
+  //   return res.status(200).end();
+  // }
 
 
   // 只允许 POST 请求

@@ -3,7 +3,7 @@ const axios = require('axios');
 require('dotenv').config();  // 用于读取环境变量
 
 // 从环境变量获取 GitHub 配置和 JWT 密钥
-const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key';  
+const secretKey = process.env.JWT_SECRET_KEY;  
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO_OWNER = 'think-crow';  // 替换为你的 GitHub 用户名
 const REPO_NAME = 'haoshuang-node';  // 替换为你的仓库名
@@ -99,7 +99,7 @@ module.exports = async (req, res) => {
 
   const { filename, _id } = req.query;  // 从查询参数获取文件名和 _id
   const updatedData = req.body;
-  console.log(filename);  // 输出文件路径，确认是否正确
+  // console.log(filename);  // 输出文件路径，确认是否正确
 
   if (!filename || !_id) {
     return res.status(400).json({ message: 'File name and _id are required' });

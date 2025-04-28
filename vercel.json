@@ -16,6 +16,10 @@
     { "src": "/api/data/add", "dest": "/api/data/add.js" },
     { "src": "/api/data/update", "dest": "/api/data/update.js" },
     { "src": "/api/data/delete", "dest": "/api/data/delete.js" },
+    { "src": "/api/data/add-md", "dest": "/api/data/add-md.js" },
+    { "src": "/api/data/get-md", "dest": "/api/data/get-md.js" },
+    { "src": "/api/data/delete-md", "dest": "/api/data/delete-md.js" },
+    { "src": "/api/data/update-md", "dest": "/api/data/update-md.js" },
     { "src": "/assets/(.*)", "dest": "/dist/assets/$1" }, 
     { "src": "/(.*)", "dest": "/dist/index.html" } 
   ]

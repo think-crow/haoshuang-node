@@ -15,7 +15,7 @@ const authenticateJWT = (req, res, next) => {
     return res.status(403).json({ message: 'No token provided' }); // 如果没有 token，返回 403
   }
 
-  const secretKey = process.env.JWT_SECRET_KEY || 'your-secret-key'; // 获取 secretKey
+  const secretKey = process.env.JWT_SECRET_KEY; // 获取 secretKey
   jwt.verify(token, secretKey, (err, user) => { // 验证 token
     if (err) {
       return res.status(403).json({ message: 'Invalid token' }); // token 无效
